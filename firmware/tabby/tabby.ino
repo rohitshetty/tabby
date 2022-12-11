@@ -1,3 +1,16 @@
+#include <ESPAsyncTCP.h>
+#include <DebugPrintMacros.h>
+#include <SyncClient.h>
+#include <AsyncPrinter.h>
+#include <ESPAsyncTCPbuffer.h>
+#include <tcp_axtls.h>
+#include <async_config.h>
+
+#include <WebSockets.h>
+#include <WebSocketsServer.h>
+#include <WebSocketsClient.h>
+
+
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
@@ -12,6 +25,7 @@
 
 #define colorSaturation 255
 const uint16_t PixelCount =60;
+WebSocketsServer webSocket = WebSocketsServer(81);
 
 
 const char* ssid = SECRET_STASSID;
@@ -33,6 +47,36 @@ RgbColor D(245,233,0);
 RgbColor E(235,108,0);
 
 RgbColor colors[] = {A,B,C,D,E};
+
+
+void webSocketEvent(byte num, WStype_t type, uint8_t * payload, size_t length)
+{
+  if (type == WStype_TEXT)
+  {
+
+    uint32_t rgb = (uint32_t) strtol((const char *) &payload[1], NULL, 16);
+    RgbColor color ( ((rgb >> 16) & 0xFF), ((rgb >> 8) & 0xFF), ((rgb >> 0) & 0xFF));
+    strip.SetPixelColor(0, color);
+    strip.SetPixelColor(1, color);
+    strip.SetPixelColor(2, color);
+    strip.SetPixelColor(3, color);
+    strip.Show();
+  } else if (type == WStype_BIN) {
+
+    for (int i = 0; i < 60; i++) {
+      RgbColor color (payload[0], payload[1], payload[2]);
+      strip.SetPixelColor(i, color);
+      strip.SetBrightness(payload[3]);
+    }
+
+    strip.Show();
+
+  }
+
+
+}
+
+
 
 void setup() {
   // Serial.begin(115200);
@@ -138,21 +182,23 @@ void setup() {
   // Serial.println("Ready");
   // Serial.print("IP address: ");
   // Serial.println(WiFi.localIP());
-  strip.SetBrightness(100);
+  strip.SetBrightness(240);
   
-  for (int j=0; j < 6; j++) {
+  // for (int j=0; j < 6; j++) {
 
-  RgbColor color = colors[j];
+  // RgbColor color = colors[j];
   for (int i = 0; i < PixelCount; i++) {
-    // RgbColor color (payload[i * 3], payload[i * 3 + 1], payload[i * 3 + 2]);
+  // RgbColor color (payload[i * 3], payload[i * 3 + 1], payload[i * 3 + 2]);
 
-    strip.SetPixelColor(i, color);
+  strip.SetPixelColor(i, E);
   }
+  // strip.SetBrightness(200);
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
 
   strip.Show();
-  delay(5000);
-    
-  }
+    // delay(500);
+  // }
 
 
 }
@@ -176,7 +222,13 @@ void setup() {
 
 void loop() {
   ArduinoOTA.handle();
+  webSocket.loop();
 
+  // for (int j = 1; j < 255; j++) {
+  //   strip.SetBrightness(j);
+  //   strip.Show();
+  //   // delay(100);
+  // }
 
 
 

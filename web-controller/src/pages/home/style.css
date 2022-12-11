@@ -1,0 +1,9 @@
+.example {
+  margin-bottom: 28px;
+  width: 80%;
+}
+
+/* Responsive */
+.responsive .react-colorful {
+  width: auto;
+}
